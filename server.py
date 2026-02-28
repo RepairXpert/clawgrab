@@ -32,14 +32,26 @@ def clean_vtt(vtt):
 
 def get_transcript(url, tmpdir):
     try:
-        subprocess.run([
+        result = subprocess.run([
             'yt-dlp',
             '--write-auto-subs',
-            '--sub-format', 'vtt',
+            '--write-subs',
+            '--sub-langs', 'en.*',
+            '--sub-format', 'vtt/best',
             '--skip-download',
+            '--no-check-certificates',
             '--output', os.path.join(tmpdir, 'caption'),
             url
         ], capture_output=True, text=True, timeout=60)
+        print(f'yt-dlp stdout: {result.stdout[-500:]}')
+        print(f'yt-dlp stderr: {result.stderr[-500:]}')
+        for f in Path(tmpdir).glob('caption*.vtt'):
+            text = clean_vtt(f.read_text(encoding='utf-8', errors='ignore'))
+            if text:
+                return text
+    except Exception as e:
+        print(f'Error: {e}')
+    return None
         for f in Path(tmpdir).glob('caption*.vtt'):
             text = clean_vtt(f.read_text(encoding='utf-8', errors='ignore'))
             if text:
