@@ -7,10 +7,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, origins=["https://getclawgrab.com", "https://www.getclawgrab.com", "https://roaring-valkyrie-3bf9be.netlify.app", "http://localhost:5500"])
+CORS(app, origins=["https://getclawgrab.com","https://www.getclawgrab.com","https://roaring-valkyrie-3bf9be.netlify.app","*"])
 
 def detect_platform(url):
-    if re.search(r'tiktok\.com|tiktok\.com', url): return 'TikTok'
+    if re.search(r'tiktok\.com', url): return 'TikTok'
     if re.search(r'youtube\.com|youtu\.be', url): return 'YouTube'
     if re.search(r'instagram\.com', url): return 'Instagram'
     if re.search(r'twitter\.com|x\.com', url): return 'Twitter/X'
@@ -32,7 +32,7 @@ def clean_vtt(vtt):
 
 def get_transcript(url, tmpdir):
     try:
-        result = subprocess.run([
+        cmd = [
             'yt-dlp',
             '--write-auto-subs',
             '--write-subs',
@@ -42,15 +42,20 @@ def get_transcript(url, tmpdir):
             '--no-check-certificates',
             '--no-playlist',
             '--force-ipv4',
+            '--socket-timeout', '30',
+            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             '--output', os.path.join(tmpdir, 'caption'),
             url
-        ], capture_output=True, text=True, timeout=60)
-        print('yt-dlp stdout:', result.stdout[-500:])
-        print('yt-dlp stderr:', result.stderr[-500:])
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+        print('yt-dlp exit code:', result.returncode)
+        print('yt-dlp stderr:', result.stderr[-300:])
         for f in Path(tmpdir).glob('caption*.vtt'):
             text = clean_vtt(f.read_text(encoding='utf-8', errors='ignore'))
-            if text:
+            if text and len(text) > 20:
                 return text
+    except subprocess.TimeoutExpired:
+        print('yt-dlp timeout')
     except Exception as e:
         print('Error:', e)
     return None
@@ -62,13 +67,10 @@ def transcribe():
         if not data or not data.get('url'):
             return jsonify({'error': 'Missing url'}), 400
         url = data['url'].strip()
-        print('Received URL:', url)
+        print('URL:', url)
         platform = detect_platform(url)
-        print('Platform:', platform)
         with tempfile.TemporaryDirectory() as tmpdir:
-            print('Starting transcript grab...')
             text = get_transcript(url, tmpdir)
-            print('Result:', text[:100] if text else 'None')
             if not text:
                 return jsonify({'error': 'Could not grab transcript'}), 500
             return jsonify({
@@ -92,4 +94,3 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     print('ClawGrab running on port', port)
     app.run(host='0.0.0.0', port=port, debug=False)
-
