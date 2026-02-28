@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, origins=["https://getclawgrab.com","https://www.getclawgrab.com","https://roaring-valkyrie-3bf9be.netlify.app","null","*"])
+CORS(app, origins=["https://getclawgrab.com", "https://www.getclawgrab.com", "https://roaring-valkyrie-3bf9be.netlify.app", "http://localhost:5500"])
 
 def detect_platform(url):
     if re.search(r'tiktok\.com', url): return 'TikTok'
@@ -33,19 +33,7 @@ def clean_vtt(vtt):
 def get_transcript(url, tmpdir):
     try:
         result = subprocess.run([
-            result = subprocess.run([
-    'yt-dlp',
-    '--write-auto-subs',
-    '--write-subs',
-    '--sub-langs', 'en.*',
-    '--sub-format', 'vtt/best',
-    '--skip-download',
-    '--no-check-certificates',
-    '--extractor-args', 'tiktok:webpage_download=1',
-    '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    '--output', os.path.join(tmpdir, 'caption'),
-    url
-], capture_output=True, text=True, timeout=60)
+            'yt-dlp',
             '--write-auto-subs',
             '--write-subs',
             '--sub-langs', 'en.*',
