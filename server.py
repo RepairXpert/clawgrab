@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://getclawgrab.com","https://www.getclawgrab.com","https://roaring-valkyrie-3bf9be.netlify.app","null","*"])
 
 def detect_platform(url):
     if re.search(r'tiktok\.com', url): return 'TikTok'
