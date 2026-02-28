@@ -43,21 +43,14 @@ def get_transcript(url, tmpdir):
             '--output', os.path.join(tmpdir, 'caption'),
             url
         ], capture_output=True, text=True, timeout=60)
-        print(f'yt-dlp stdout: {result.stdout[-500:]}')
-        print(f'yt-dlp stderr: {result.stderr[-500:]}')
+        print('yt-dlp stdout:', result.stdout[-500:])
+        print('yt-dlp stderr:', result.stderr[-500:])
         for f in Path(tmpdir).glob('caption*.vtt'):
             text = clean_vtt(f.read_text(encoding='utf-8', errors='ignore'))
             if text:
                 return text
     except Exception as e:
-        print(f'Error: {e}')
-    return None
-        for f in Path(tmpdir).glob('caption*.vtt'):
-            text = clean_vtt(f.read_text(encoding='utf-8', errors='ignore'))
-            if text:
-                return text
-    except Exception as e:
-        print(f'Error: {e}')
+        print('Error:', e)
     return None
 
 @app.route('/api/transcribe', methods=['POST'])
@@ -84,6 +77,6 @@ def health():
     return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     print('ClawGrab running on port', port)
     app.run(host='0.0.0.0', port=port, debug=False)
