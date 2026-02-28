@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app, origins=["https://getclawgrab.com", "https://www.getclawgrab.com", "https://roaring-valkyrie-3bf9be.netlify.app", "http://localhost:5500"])
 
 def detect_platform(url):
-    if re.search(r'tiktok\.com', url): return 'TikTok'
+    if re.search(r'tiktok\.com|tiktok\.com', url): return 'TikTok'
     if re.search(r'youtube\.com|youtu\.be', url): return 'YouTube'
     if re.search(r'instagram\.com', url): return 'Instagram'
     if re.search(r'twitter\.com|x\.com', url): return 'Twitter/X'
@@ -40,6 +40,8 @@ def get_transcript(url, tmpdir):
             '--sub-format', 'vtt/best',
             '--skip-download',
             '--no-check-certificates',
+            '--no-playlist',
+            '--force-ipv4',
             '--output', os.path.join(tmpdir, 'caption'),
             url
         ], capture_output=True, text=True, timeout=60)
@@ -90,3 +92,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     print('ClawGrab running on port', port)
     app.run(host='0.0.0.0', port=port, debug=False)
+
