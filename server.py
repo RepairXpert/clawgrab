@@ -86,6 +86,73 @@ def transcribe():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/webhook/stripe', methods=['POST'])
+def stripe_webhook():
+    import hmac
+    import hashlib
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature', '')
+    secret = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+    
+    try:
+        # Verify signature
+        elements = dict(item.split('=', 1) for item in sig_header.split(','))
+        timestamp = elements.get('t', '')
+        signature = elements.get('v1', '')
+        signed_payload = f"{timestamp}.{payload.decode('utf-8')}"
+        expected = hmac.new(secret.encode(), signed_payload.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            return jsonify({'error': 'Invalid signature'}), 400
+    except Exception as e:
+        print('Webhook signature error:', e)
+        return jsonify({'error': 'Signature verification failed'}), 400
+
+    event = request.get_json()
+    print('Stripe event:', event.get('type'))
+
+    if event.get('type') in ['checkout.session.completed', 'customer.subscription.created']:
+        customer_email = event.get('data', {}).get('object', {}).get('customer_email') or \
+                        event.get('data', {}).get('object', {}).get('customer_details', {}).get('email')
+        if customer_email:
+            print(f'Upgrading {customer_email} to Pro')
+            upgrade_user_to_pro(customer_email)
+
+    return jsonify({'status': 'ok'})
+
+def upgrade_user_to_pro(email):
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print('Supabase not configured')
+        return
+    try:
+        import urllib.request
+        import json
+        # Find user by email and update their plan
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/auth/v1/admin/users?email={email}',
+            headers={
+                'apikey': SUPABASE_SERVICE_KEY,
+                'Authorization': f'Bearer {SUPABASE_SERVICE_KEY}'
+            }
+        )
+        with urllib.request.urlopen(req) as res:
+            data = json.loads(res.read())
+            users = data.get('users', [])
+            if users:
+                user_id = users[0]['id']
+                update_req = urllib.request.Request(
+                    f'{SUPABASE_URL}/auth/v1/admin/users/{user_id}',
+                    data=json.dumps({'user_metadata': {'plan': 'pro'}}).encode(),
+                    method='PUT',
+                    headers={
+                        'apikey': SUPABASE_SERVICE_KEY,
+                        'Authorization': f'Bearer {SUPABASE_SERVICE_KEY}',
+                        'Content-Type': 'application/json'
+                    }
+                )
+                urllib.request.urlopen(update_req)
+                print(f'✓ Upgraded {email} to Pro')
+    except Exception as e:
+        print(f'Error upgrading user: {e}')
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok'})
