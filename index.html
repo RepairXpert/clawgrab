@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawGrab — Grab Any Video. Feed Any AI.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --white: #f0ede8;
+    --orange: #ff4d00;
+    --orange-dim: #cc3d00;
+    --gray: #1a1a1a;
+    --gray2: #2a2a2a;
+    --muted: #666;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #222;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: 3px;
+    color: var(--white);
+    text-decoration: none;
+  }
+
+  .logo span { color: var(--orange); }
+
+  .nav-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-link:hover { color: var(--white); }
+
+  .btn-nav {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: var(--orange);
+    color: var(--black);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 700;
+    transition: background 0.2s;
+  }
+
+  .btn-nav:hover { background: var(--white); }
+
+  /* HERO */
+  .hero {
+    min-height: 90vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-left {
+    padding: 5rem 2rem 5rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid #222;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--orange);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 8vw, 8rem);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    margin-bottom: 2rem;
+  }
+
+  h1 .line2 { color: var(--orange); }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: #aaa;
+    line-height: 1.6;
+    max-width: 400px;
+    margin-bottom: 3rem;
+    font-weight: 300;
+  }
+
+  .hero-sub strong { color: var(--white); font-weight: 500; }
+
+  /* URL INPUT */
+  .grab-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 480px;
+  }
+
+  .input-row {
+    display: flex;
+    border: 1px solid #333;
+    background: var(--gray);
+    transition: border-color 0.2s;
+  }
+
+  .input-row:focus-within { border-color: var(--orange); }
+
+  .url-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 1rem 1.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--white);
+    letter-spacing: 1px;
+  }
+
+  .url-input::placeholder { color: #444; }
+
+  .grab-btn {
+    background: var(--orange);
+    border: none;
+    color: var(--black);
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    padding: 0 1.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .grab-btn:hover { background: var(--white); }
+  .grab-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+  .platform-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid #333;
+    padding: 0.3rem 0.6rem;
+  }
+
+  /* OUTPUT BOX */
+  .output-box {
+    display: none;
+    background: var(--gray);
+    border: 1px solid #333;
+    border-top: 2px solid var(--orange);
+    padding: 1.2rem;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.7;
+    color: #ccc;
+    position: relative;
+  }
+
+  .output-box.visible { display: block; }
+
+  .output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #333;
+  }
+
+  .output-label {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--orange);
+  }
+
+  .copy-btn {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid #444;
+    color: #aaa;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  .transcript-text { white-space: pre-wrap; word-break: break-word; }
+
+  .loading {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--orange);
+    letter-spacing: 2px;
+    animation: pulse 1s infinite;
+  }
+
+  .loading.visible { display: block; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .error-msg {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: #ff6b6b;
+    border: 1px solid #ff6b6b33;
+    padding: 0.75rem 1rem;
+    background: #ff6b6b0a;
+  }
+
+  .error-msg.visible { display: block; }
+
+  /* HERO RIGHT — DEMO VISUAL */
+  .hero-right {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    overflow: hidden;
+  }
+
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,77,0,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,77,0,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .terminal-window {
+    background: #111;
+    border: 1px solid #333;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 2;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}
+  }
+
+  .terminal-bar {
+    background: #1a1a1a;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #333;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+
+  .terminal-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: #555;
+    margin-left: auto;
+    letter-spacing: 1px;
+  }
+
+  .terminal-body {
+    padding: 1.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.8;
+  }
+
+  .t-prompt { color: var(--orange); }
+  .t-url { color: #7ec8e3; }
+  .t-info { color: #555; }
+  .t-success { color: #28c840; }
+  .t-text { color: #aaa; }
+  .t-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--orange);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid #222;
+    border-bottom: 1px solid #222;
+  }
+
+  .stat {
+    padding: 2rem;
+    text-align: center;
+    border-right: 1px solid #222;
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    color: var(--orange);
+    line-height: 1;
+    display: block;
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    display: block;
+  }
+
+  /* HOW IT WORKS */
+  .section {
+    padding: 5rem 3rem;
+    border-bottom: 1px solid #222;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #222;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+
+  .step {
+    padding: 2.5rem 2rem;
+    border-right: 1px solid #222;
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .step:last-child { border-right: none; }
+  .step:hover { background: #111; }
+
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 5rem;
+    color: #1a1a1a;
+    line-height: 1;
+    margin-bottom: 1rem;
+    transition: color 0.3s;
+  }
+
+  .step:hover .step-num { color: var(--orange); }
+
+  .step-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.75rem;
+  }
+
+  .step-desc {
+    font-size: 0.9rem;
+    color: #777;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* PRICING */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid #222;
+  }
+
+  .plan {
+    padding: 2.5rem 2rem;
+    border-right: 1px solid #222;
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .plan:last-child { border-right: none; }
+
+  .plan.featured {
+    background: #111;
+    border-top: 2px solid var(--orange);
+  }
+
+  .plan-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .plan-name {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+  }
+
+  .plan-price {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    color: var(--orange);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  .plan-period {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 2rem;
+    display: block;
+  }
+
+  .plan-features {
+    list-style: none;
+    margin-bottom: 2rem;
+  }
+
+  .plan-features li {
+    font-size: 0.85rem;
+    color: #aaa;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 300;
+  }
+
+  .plan-features li::before {
+    content: '→';
+    color: var(--orange);
+    font-size: 0.7rem;
+  }
+
+  .btn-plan {
+    width: 100%;
+    padding: 0.9rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    border: 1px solid #333;
+    background: transparent;
+    color: var(--white);
+    transition: all 0.2s;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+  }
+
+  .btn-plan:hover { border-color: var(--orange); color: var(--orange); }
+
+  .btn-plan.primary {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: var(--black);
+  }
+
+  .btn-plan.primary:hover { background: var(--white); border-color: var(--white); }
+
+  /* FOOTER */
+  footer {
+    padding: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #222;
+  }
+
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    color: #333;
+  }
+
+  .footer-logo span { color: var(--orange); }
+
+  .footer-text {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: #333;
+    text-transform: uppercase;
+  }
+
+  /* HERO ANIMATIONS */
+  .hero-left > * {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.6s forwards;
+  }
+
+  .hero-tag { animation-delay: 0.1s; }
+  h1 { animation-delay: 0.2s; }
+  .hero-sub { animation-delay: 0.3s; }
+  .grab-form { animation-delay: 0.4s; }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--orange); }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-right { display: none; }
+    .steps { grid-template-columns: 1fr; }
+    .step { border-right: none; border-bottom: 1px solid #222; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .plan { border-right: none; border-bottom: 1px solid #222; }
+    .stats-bar { grid-template-columns: 1fr; }
+    .stat { border-right: none; border-bottom: 1px solid #222; }
+    footer { flex-direction: column; gap: 1rem; text-align: center; }
+    .section { padding: 3rem 1.5rem; }
+    nav { padding: 1rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo">CLAW<span>GRAB</span></a>
+  <div class="nav-right">
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="#pricing" class="btn-nav">Get started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">Video → Text → Your AI</div>
+    <h1>GRAB<br><span class="line2">ANY</span><br>VIDEO</h1>
+    <p class="hero-sub">
+      Paste a URL. Get the full transcript in seconds.<br>
+      Feed it to <strong>Claude, ChatGPT, Gemini</strong> — any AI you want.<br>
+      YouTube, TikTok, Instagram. One tool.
+    </p>
+
+    <div class="grab-form">
+      <div class="input-row">
+        <input
+          type="url"
+          class="url-input"
+          id="urlInput"
+          placeholder="https://youtube.com/watch?v=..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="grab-btn" id="grabBtn" onclick="goToApp()">GRAB</button>
+      </div>
+
+      <div class="platform-tags">
+        <span class="tag">YouTube</span>
+        <span class="tag">TikTok</span>
+        <span class="tag">Instagram</span>
+        <span class="tag">Twitter</span>
+        <span class="tag">+ more</span>
+      </div>
+
+      <div class="loading" id="loading">▶ GRABBING TRANSCRIPT...</div>
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="output-box" id="outputBox">
+        <div class="output-header">
+          <span class="output-label">▶ Transcript ready</span>
+          <button class="copy-btn" onclick="copyTranscript()">COPY ALL</button>
+        </div>
+        <div class="transcript-text" id="transcriptText"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="grid-bg"></div>
+    <div class="terminal-window">
+      <div class="terminal-bar">
+        <div class="dot r"></div>
+        <div class="dot y"></div>
+        <div class="dot g"></div>
+        <span class="terminal-title">clawgrab — transcript</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-prompt">$</span> clawgrab <span class="t-url">youtube.com/watch?v=dQw4w9WgXcQ</span></div>
+        <div class="t-info">→ Detecting platform... YouTube</div>
+        <div class="t-info">→ Fetching captions...</div>
+        <div class="t-success">✓ Transcript grabbed (4,821 words)</div>
+        <div class="t-info">→ Copied to clipboard</div>
+        <br>
+        <div class="t-text">"We're no strangers to love, you</div>
+        <div class="t-text">know the rules and so do I. A full</div>
+        <div class="t-text">commitment's what I'm thinking of..."</div>
+        <br>
+        <div><span class="t-prompt">$</span> <span class="t-cursor"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-num">5s</span>
+    <span class="stat-label">URL to clipboard</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">50+</span>
+    <span class="stat-label">Supported platforms</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">0</span>
+    <span class="stat-label">Chrome extensions needed</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="section-label">How it works</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">PASTE URL</div>
+      <p class="step-desc">Drop any video URL. YouTube, TikTok, Instagram, Twitter — if it has audio, we grab it.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">GET TEXT</div>
+      <p class="step-desc">Full transcript in seconds. Clean, raw text. No summaries forced on you. No locked format.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">FEED YOUR AI</div>
+      <p class="step-desc">Paste into Claude, ChatGPT, Gemini — whatever AI you use. You're in control.</p>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CLAWGRAB -->
+<section class="section">
+  <div class="section-label">Why not the others</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num" style="font-size:2rem;color:#333;margin-bottom:0.5rem">GLASP</div>
+      <div class="step-title" style="font-size:1.2rem;color:#555">Desktop only</div>
+      <p class="step-desc">Chrome extension required. No mobile. No TikTok. Summarizes FOR you — no raw export.</p>
+    </div>
+    <div class="step">
+      <div class="step-num" style="font-size:2rem;color:#333;margin-bottom:0.5rem">EIGHTIFY</div>
+      <div class="step-title" style="font-size:1.2rem;color:#555">YouTube only</div>
+      <p class="step-desc">Great summaries but locked to YouTube. No raw text. Forces their AI on you.</p>
+    </div>
+    <div class="step">
+      <div class="step-num" style="font-size:2rem;color:#333;margin-bottom:0.5rem">CLAWGRAB</div>
+      <div class="step-title" style="color:var(--orange)">Everything</div>
+      <p class="step-desc">Mobile + desktop. 50+ platforms. Raw text export. Works with any AI. No extension.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="section-label">Pricing</div>
+  <div class="pricing-grid">
+    <div class="plan">
+      <span class="plan-badge">Free</span>
+      <div class="plan-name">STARTER</div>
+      <div class="plan-price">$0</div>
+      <span class="plan-period">forever</span>
+      <ul class="plan-features">
+        <li>10 grabs per month</li>
+        <li>YouTube + TikTok</li>
+        <li>Plain text export</li>
+        <li>Copy to clipboard</li>
+      </ul>
+      <a href="#" class="btn-plan">Start free</a>
+    </div>
+
+    <div class="plan featured">
+      <span class="plan-badge">★ Most popular</span>
+      <div class="plan-name">PRO</div>
+      <div class="plan-price">$12</div>
+      <span class="plan-period">per month</span>
+      <ul class="plan-features">
+        <li>Unlimited grabs</li>
+        <li>50+ platforms</li>
+        <li>AI summary (3-5 bullets)</li>
+        <li>Markdown + plain export</li>
+        <li>Grab history</li>
+        <li>Mobile app</li>
+      </ul>
+      <a href="https://buy.stripe.com/3cIcN67Tf16fatLb4L4ZG00" class="btn-plan primary">Get Pro — $12/mo</a>
+    </div>
+
+    <div class="plan">
+      <span class="plan-badge">Power</span>
+      <div class="plan-name">POWER</div>
+      <div class="plan-price">$29</div>
+      <span class="plan-period">per month</span>
+      <ul class="plan-features">
+        <li>Everything in Pro</li>
+        <li>Batch grab (5 URLs)</li>
+        <li>AI chat about video</li>
+        <li>Notion + Obsidian sync</li>
+        <li>Library + folders</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="https://buy.stripe.com/3cIcN67Tf16fatLb4L4ZG00" class="btn-plan">Get Power — $29/mo</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">CLAW<span>GRAB</span></div>
+  <div class="footer-text">Built by a solo founder on a phone · © 2026</div>
+  <div class="footer-text">Privacy · Terms</div>
+</footer>
+
+<script>
+  // DEMO MODE - shows fake transcript for demo purposes
+  // In production, this calls your Flask backend
+  const BACKEND_URL = 'http://localhost:5000'; // Your Flask server
+
+  function goToApp() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (url) {
+      window.location.href = 'clawgrab-app.html?url=' + encodeURIComponent(url);
+    } else {
+      window.location.href = 'clawgrab-app.html';
+    }
+  }
+
+  async function grabTranscript() { goToApp(); }
+    const input = document.getElementById('urlInput');
+    const btn = document.getElementById('grabBtn');
+    const loading = document.getElementById('loading');
+    const outputBox = document.getElementById('outputBox');
+    const errorMsg = document.getElementById('errorMsg');
+    const transcriptText = document.getElementById('transcriptText');
+
+    const url = input.value.trim();
+    if (!url) {
+      showError('Paste a video URL first.');
+      return;
+    }
+
+    // Reset
+    outputBox.classList.remove('visible');
+    errorMsg.classList.remove('visible');
+    loading.classList.add('visible');
+    btn.disabled = true;
+
+    try {
+      // Try your Flask backend first
+      const res = await fetch(`${BACKEND_URL}/transcript`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        showTranscript(data.transcript || data.text || JSON.stringify(data));
+      } else {
+        // Demo fallback
+        showDemo(url);
+      }
+    } catch (e) {
+      // Backend not reachable - show demo
+      showDemo(url);
+    }
+  }
+
+  function showDemo(url) {
+    const platform = url.includes('tiktok') ? 'TikTok' :
+                     url.includes('instagram') ? 'Instagram' :
+                     url.includes('twitter') || url.includes('x.com') ? 'Twitter' : 'YouTube';
+
+    const demo = `[Demo Mode — Connect your Flask backend to grab real transcripts]
+
+Platform detected: ${platform}
+URL: ${url}
+
+--- TRANSCRIPT ---
+
+This is where your full video transcript appears. 
+
+ClawGrab grabs raw text from any video — no summaries forced on you, 
+no Chrome extension required, works on mobile and desktop.
+
+The transcript is clean, copyable, and ready to paste into Claude, 
+ChatGPT, Gemini, or any AI you use.
+
+In production, this connects to your Flask backend running yt-dlp 
+which you already have working on your phone at localhost:5000.
+
+Just update BACKEND_URL at the top of this script to point to your server.`;
+
+    showTranscript(demo);
+  }
+
+  function showTranscript(text) {
+    const loading = document.getElementById('loading');
+    const outputBox = document.getElementById('outputBox');
+    const transcriptText = document.getElementById('transcriptText');
+    const btn = document.getElementById('grabBtn');
+
+    loading.classList.remove('visible');
+    transcriptText.textContent = text;
+    outputBox.classList.add('visible');
+    btn.disabled = false;
+  }
+
+  function showError(msg) {
+    const loading = document.getElementById('loading');
+    const errorMsg = document.getElementById('errorMsg');
+    const btn = document.getElementById('grabBtn');
+
+    loading.classList.remove('visible');
+    errorMsg.textContent = '⚠ ' + msg;
+    errorMsg.classList.add('visible');
+    btn.disabled = false;
+  }
+
+  function copyTranscript() {
+    const text = document.getElementById('transcriptText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'COPIED!';
+      btn.style.color = '#28c840';
+      setTimeout(() => {
+        btn.textContent = 'COPY ALL';
+        btn.style.color = '';
+      }, 2000);
+    });
+  }
+
+  // Enter key on input
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') grabTranscript();
+  });
+</script>
+
+</body>
+</html>

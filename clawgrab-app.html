@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawGrab — App</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #0a0a0a;
+  --white: #f0ede8;
+  --orange: #ff4d00;
+  --gray: #141414;
+  --gray2: #1e1e1e;
+  --gray3: #2a2a2a;
+  --muted: #555;
+  --green: #00e676;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid #1e1e1e;
+  background: rgba(10,10,10,0.98);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 3px;
+  color: var(--white);
+}
+.logo span { color: var(--orange); }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.plan-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  padding: 0.3rem 0.7rem;
+}
+
+.plan-badge.free { color: var(--muted); border-color: var(--muted); }
+
+.grabs-left {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.grabs-left span { color: var(--white); }
+
+.upgrade-btn {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: var(--orange);
+  color: var(--black);
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.upgrade-btn:hover { background: var(--white); }
+
+/* ── LAYOUT ── */
+.app-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 220px;
+  border-right: 1px solid #1e1e1e;
+  padding: 1.5rem 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-section {
+  padding: 0 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sidebar-label {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+}
+
+.nav-item:hover { color: var(--white); background: #1a1a1a; }
+.nav-item.active { color: var(--white); background: #1e1e1e; border-left: 2px solid var(--orange); padding-left: calc(0.75rem - 2px); }
+
+.nav-icon { font-size: 0.9rem; width: 18px; text-align: center; }
+
+.sidebar-divider { border: none; border-top: 1px solid #1a1a1a; margin: 0.5rem 1rem 1rem; }
+
+.recent-grabs { padding: 0 1rem; flex: 1; overflow-y: auto; }
+
+.recent-item {
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #151515;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 2px;
+}
+
+.recent-item:hover { background: #1a1a1a; }
+
+.recent-title {
+  font-size: 0.75rem;
+  color: #aaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.2rem;
+}
+
+.recent-meta {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+/* ── MAIN ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── GRAB PANEL ── */
+.grab-panel {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #1e1e1e;
+  background: var(--gray);
+}
+
+.grab-panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 1rem;
+}
+
+.url-row {
+  display: flex;
+  gap: 0;
+  border: 1px solid #2a2a2a;
+  background: var(--black);
+  transition: border-color 0.2s;
+  margin-bottom: 0.75rem;
+}
+.url-row:focus-within { border-color: var(--orange); }
+
+.url-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.9rem 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--white);
+  letter-spacing: 1px;
+}
+.url-input::placeholder { color: #333; }
+
+.grab-btn {
+  background: var(--orange);
+  border: none;
+  color: var(--black);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  padding: 0 1.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.grab-btn:hover { background: var(--white); }
+.grab-btn:disabled { background: #222; color: #444; cursor: not-allowed; }
+
+.options-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  color: var(--muted);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.toggle-label input[type="checkbox"] {
+  accent-color: var(--orange);
+  width: 13px;
+  height: 13px;
+}
+
+.toggle-label:hover { color: var(--white); }
+
+/* ── OUTPUT AREA ── */
+.output-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.output-tabs {
+  display: flex;
+  border-bottom: 1px solid #1e1e1e;
+  background: var(--gray);
+  padding: 0 2rem;
+  gap: 0;
+}
+
+.tab {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  border: none;
+  background: none;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--white); }
+.tab.active { color: var(--orange); border-bottom: 2px solid var(--orange); }
+
+/* EMPTY STATE */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  padding: 3rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.empty-sub {
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 300;
+}
+
+/* TRANSCRIPT OUTPUT */
+.transcript-output {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.transcript-output.visible { display: flex; }
+
+.transcript-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid #1a1a1a;
+  background: var(--gray);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.transcript-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meta-item {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.meta-item span { color: var(--white); }
+
+.toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid #333;
+  color: #aaa;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.action-btn:hover { border-color: var(--orange); color: var(--orange); }
+.action-btn.success { border-color: var(--green); color: var(--green); }
+
+.transcript-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.transcript-text {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.9;
+  color: #ccc;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 900px;
+}
+
+/* AI SUMMARY */
+.ai-summary {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-left: 2px solid var(--orange);
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 2rem;
+  max-width: 900px;
+}
+
+.ai-summary-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 0.75rem;
+}
+
+.ai-summary-text {
+  font-size: 0.88rem;
+  color: #bbb;
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+.ai-bullet {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.ai-bullet::before {
+  content: '→';
+  color: var(--orange);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* LOADING */
+.loading-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 1rem;
+}
+.loading-state.visible { display: flex; }
+
+.loading-bar-wrap {
+  width: 200px;
+  height: 2px;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+.loading-bar {
+  height: 100%;
+  background: var(--orange);
+  animation: loadSlide 1.5s ease-in-out infinite;
+}
+
+@keyframes loadSlide {
+  0% { width: 0%; margin-left: 0%; }
+  50% { width: 60%; margin-left: 20%; }
+  100% { width: 0%; margin-left: 100%; }
+}
+
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: var(--orange);
+  text-transform: uppercase;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ERROR */
+.error-state {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem;
+}
+.error-state.visible { display: flex; }
+
+.error-box {
+  border: 1px solid #ff4444;
+  background: #ff000008;
+  padding: 1.5rem 2rem;
+  max-width: 500px;
+  text-align: center;
+}
+
+.error-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #ff4444;
+  margin-bottom: 0.5rem;
+}
+
+.error-msg {
+  font-size: 0.85rem;
+  color: #aaa;
+  font-weight: 300;
+}
+
+/* UPGRADE MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.visible { display: flex; }
+
+.modal {
+  background: #111;
+  border: 1px solid #333;
+  border-top: 2px solid var(--orange);
+  padding: 2.5rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.modal-sub {
+  font-size: 0.88rem;
+  color: #aaa;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.modal-price {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: var(--orange);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.modal-period {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.modal-upgrade-btn {
+  width: 100%;
+  padding: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 3px;
+  background: var(--orange);
+  color: var(--black);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+.modal-upgrade-btn:hover { background: var(--white); }
+
+.modal-close {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.modal-close:hover { color: var(--white); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; }
+::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .grab-panel { padding: 1rem; }
+  .transcript-toolbar { padding: 0.75rem 1rem; }
+  .transcript-body { padding: 1rem; }
+  .output-tabs { padding: 0 1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">CLAW<span>GRAB</span></div>
+  <div class="topbar-right">
+    <span class="grabs-left" id="grabsLeft">Grabs: <span id="grabCount">7</span>/10</span>
+    <span class="plan-badge free" id="planBadge">FREE</span>
+    <a href="https://buy.stripe.com/3cIcN67Tf16fatLb4L4ZG00" class="upgrade-btn" id="upgradeBtn">Upgrade $12/mo</a>
+  </div>
+</div>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Menu</span>
+      <button class="nav-item active" onclick="setTab('grab')">
+        <span class="nav-icon">⚡</span> Grab
+      </button>
+      <button class="nav-item" onclick="setTab('history')">
+        <span class="nav-icon">📋</span> History
+      </button>
+      <button class="nav-item" onclick="setTab('settings')">
+        <span class="nav-icon">⚙</span> Settings
+      </button>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <div class="recent-grabs">
+      <span class="sidebar-label">Recent</span>
+      <div id="recentList">
+        <div class="recent-item" onclick="loadRecent(0)">
+          <div class="recent-title">How I built a $10k MRR SaaS alone</div>
+          <div class="recent-meta">YouTube · 2h ago</div>
+        </div>
+        <div class="recent-item" onclick="loadRecent(1)">
+          <div class="recent-title">TikTok viral growth strategy 2025</div>
+          <div class="recent-meta">TikTok · 5h ago</div>
+        </div>
+        <div class="recent-item" onclick="loadRecent(2)">
+          <div class="recent-title">Claude vs ChatGPT for coding</div>
+          <div class="recent-meta">YouTube · Yesterday</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- GRAB PANEL -->
+    <div class="grab-panel">
+      <div class="grab-panel-title">▶ New Grab</div>
+      <div class="url-row">
+        <input
+          type="url"
+          class="url-input"
+          id="urlInput"
+          placeholder="Paste YouTube, TikTok, Instagram, Twitter URL..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="grab-btn" id="grabBtn" onclick="grabTranscript()">GRAB</button>
+      </div>
+      <div class="options-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="optSummary" checked> AI Summary
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="optTimestamps"> Timestamps
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="optClean" checked> Clean for AI
+        </label>
+      </div>
+    </div>
+
+    <!-- OUTPUT TABS -->
+    <div class="output-tabs">
+      <button class="tab active" onclick="switchOutputTab('transcript', this)">Transcript</button>
+      <button class="tab" onclick="switchOutputTab('summary', this)">AI Summary</button>
+      <button class="tab" onclick="switchOutputTab('markdown', this)">Markdown</button>
+    </div>
+
+    <!-- OUTPUT AREA -->
+    <div class="output-area">
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🦀</div>
+        <div class="empty-title">NOTHING GRABBED YET</div>
+        <div class="empty-sub">Paste a video URL above and hit GRAB</div>
+      </div>
+
+      <!-- LOADING -->
+      <div class="loading-state" id="loadingState">
+        <div class="loading-text" id="loadingText">Grabbing transcript...</div>
+        <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+      </div>
+
+      <!-- ERROR -->
+      <div class="error-state" id="errorState">
+        <div class="error-box">
+          <div class="error-title">⚠ Grab Failed</div>
+          <div class="error-msg" id="errorMsg">Could not grab transcript. Check the URL and try again.</div>
+        </div>
+      </div>
+
+      <!-- TRANSCRIPT OUTPUT -->
+      <div class="transcript-output" id="transcriptOutput">
+        <div class="transcript-toolbar">
+          <div class="transcript-meta">
+            <span class="meta-item">Platform: <span id="metaPlatform">—</span></span>
+            <span class="meta-item">Words: <span id="metaWords">—</span></span>
+            <span class="meta-item">Tokens ≈ <span id="metaTokens">—</span></span>
+          </div>
+          <div class="toolbar-actions">
+            <button class="action-btn" onclick="copyText('transcript')">COPY</button>
+            <button class="action-btn" onclick="downloadText()">SAVE .TXT</button>
+            <button class="action-btn" onclick="copyText('markdown')">COPY MD</button>
+          </div>
+        </div>
+        <div class="transcript-body" id="transcriptBody">
+          <div class="ai-summary" id="aiSummaryBlock" style="display:none">
+            <div class="ai-summary-label">🤖 AI Summary</div>
+            <div class="ai-summary-text" id="aiSummaryText"></div>
+          </div>
+          <div class="transcript-text" id="transcriptText"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal">
+    <div class="modal-title">OUT OF GRABS</div>
+    <p class="modal-sub">You've used all 10 free grabs this month.<br>Upgrade to Pro for unlimited grabs + AI summaries.</p>
+    <div class="modal-price">$12</div>
+    <span class="modal-period">per month</span>
+    <a href="https://buy.stripe.com/3cIcN67Tf16fatLb4L4ZG00" class="modal-upgrade-btn">UPGRADE TO PRO</a>
+    <button class="modal-close" onclick="closeModal()">Maybe later</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+const BACKEND = 'https://clawgrab.onrender.com'; // Production backend
+const FREE_LIMIT = 10;
+
+let state = {
+  grabs: parseInt(localStorage.getItem('cg_grabs') || '7'),
+  plan: localStorage.getItem('cg_plan') || 'free',
+  currentTranscript: '',
+  currentPlatform: '',
+  history: JSON.parse(localStorage.getItem('cg_history') || '[]'),
+  activeOutputTab: 'transcript'
+};
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  updateGrabCount();
+  if (state.plan === 'pro') {
+    document.getElementById('planBadge').textContent = 'PRO';
+    document.getElementById('planBadge').classList.remove('free');
+    document.getElementById('upgradeBtn').style.display = 'none';
+    document.getElementById('grabsLeft').style.display = 'none';
+  }
+}
+
+function updateGrabCount() {
+  const remaining = FREE_LIMIT - state.grabs;
+  document.getElementById('grabCount').textContent = Math.max(0, remaining);
+}
+
+// ── GRAB ──────────────────────────────────────────────────────
+async function grabTranscript() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+
+  // Check limit
+  if (state.plan === 'free' && state.grabs >= FREE_LIMIT) {
+    showModal();
+    return;
+  }
+
+  const wantSummary = document.getElementById('optSummary').checked;
+  const wantTimestamps = document.getElementById('optTimestamps').checked;
+  const wantClean = document.getElementById('optClean').checked;
+
+  setState('loading');
+  setLoadingText('Detecting platform...');
+  document.getElementById('grabBtn').disabled = true;
+
+  try {
+    setLoadingText('Grabbing transcript...');
+
+    const res = await fetch(`${BACKEND}/api/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, options: { clean: wantClean, summary: wantSummary, timestamps: wantTimestamps } })
+    });
+
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+
+    showTranscript(data, url, wantSummary);
+    incrementGrab(url, data.platform);
+
+  } catch(e) {
+    // Demo mode if backend not running
+    if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      showDemo(url, wantSummary);
+      incrementGrab(url, detectPlatform(url));
+    } else {
+      setState('error');
+      document.getElementById('errorMsg').textContent = e.message;
+    }
+  }
+
+  document.getElementById('grabBtn').disabled = false;
+}
+
+function detectPlatform(url) {
+  if (url.includes('tiktok')) return 'TikTok';
+  if (url.includes('instagram')) return 'Instagram';
+  if (url.includes('twitter') || url.includes('x.com')) return 'Twitter/X';
+  return 'YouTube';
+}
+
+function showDemo(url, wantSummary) {
+  const platform = detectPlatform(url);
+  const demoText = `This is a demo transcript. Connect your Flask backend at localhost:5000 to grab real transcripts.
+
+Your backend (server.py) is already built and handles:
+- YouTube captions via yt-dlp (instant, free)
+- TikTok, Instagram, Twitter via yt-dlp
+- Whisper STT fallback for videos without captions
+
+To start your backend on Windows:
+cd C:\\ClawGrab
+venv\\Scripts\\Activate.ps1
+python server.py
+
+Or on your Android phone via Termux, your server is already running at port 5000.
+
+Once connected, paste any video URL above and ClawGrab will extract the full transcript in seconds — ready to copy into Claude, ChatGPT, or any AI you use.`;
+
+  const fakeData = {
+    platform,
+    plain: demoText,
+    timed: demoText
+  };
+
+  const summary = wantSummary ? [
+    'ClawGrab grabs full video transcripts from YouTube, TikTok, Instagram and more',
+    'Backend uses yt-dlp for instant caption extraction with Whisper as fallback',
+    'Connect Flask backend at localhost:5000 to start grabbing real transcripts',
+    'Copy transcript directly into Claude, ChatGPT, or any AI workflow'
+  ] : null;
+
+  showTranscript(fakeData, url, wantSummary, summary);
+}
+
+function showTranscript(data, url, wantSummary, summaryOverride) {
+  state.currentTranscript = data.plain || data.text || '';
+  state.currentPlatform = data.platform || detectPlatform(url);
+
+  const words = state.currentTranscript.split(/\s+/).length;
+  const tokens = Math.round(words * 1.3);
+
+  document.getElementById('metaPlatform').textContent = state.currentPlatform;
+  document.getElementById('metaWords').textContent = words.toLocaleString();
+  document.getElementById('metaTokens').textContent = tokens.toLocaleString();
+  document.getElementById('transcriptText').textContent = state.currentTranscript;
+
+  // AI Summary
+  const summaryBlock = document.getElementById('aiSummaryBlock');
+  if (wantSummary) {
+    const bullets = summaryOverride || generateFakeSummary(state.currentTranscript);
+    document.getElementById('aiSummaryText').innerHTML = bullets
+      .map(b => `<div class="ai-bullet">${b}</div>`)
+      .join('');
+    summaryBlock.style.display = 'block';
+  } else {
+    summaryBlock.style.display = 'none';
+  }
+
+  setState('result');
+}
+
+function generateFakeSummary(text) {
+  // In production this calls Claude API
+  const words = text.split(' ').slice(0, 50).join(' ');
+  return [
+    'Connect your Flask backend to generate real AI summaries via Claude API',
+    'Transcripts are cleaned and optimized for direct use in any AI workflow',
+    'Supports YouTube, TikTok, Instagram, Twitter and 50+ other platforms',
+    'Copy the full transcript or summary with one click'
+  ];
+}
+
+function incrementGrab(url, platform) {
+  if (state.plan === 'free') {
+    state.grabs++;
+    localStorage.setItem('cg_grabs', state.grabs);
+    updateGrabCount();
+  }
+
+  // Add to history
+  const title = url.split('/').pop().substring(0, 40) || 'Video';
+  state.history.unshift({ title, platform, url, time: Date.now() });
+  state.history = state.history.slice(0, 20);
+  localStorage.setItem('cg_history', JSON.stringify(state.history));
+}
+
+// ── COPY / SAVE ────────────────────────────────────────────────
+function copyText(format) {
+  let text = state.currentTranscript;
+  if (format === 'markdown') {
+    text = `# Transcript\n\nPlatform: ${state.currentPlatform}\n\n---\n\n${state.currentTranscript}`;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = document.querySelectorAll('.action-btn');
+    btns.forEach(b => {
+      if (b.textContent.includes('COPY')) {
+        const orig = b.textContent;
+        b.textContent = 'COPIED ✓';
+        b.classList.add('success');
+        setTimeout(() => { b.textContent = orig; b.classList.remove('success'); }, 2000);
+      }
+    });
+  });
+}
+
+function downloadText() {
+  const blob = new Blob([state.currentTranscript], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `clawgrab-${state.currentPlatform.toLowerCase()}-${Date.now()}.txt`;
+  a.click();
+}
+
+// ── UI STATE ──────────────────────────────────────────────────
+function setState(s) {
+  document.getElementById('emptyState').style.display = s === 'empty' ? 'flex' : 'none';
+  document.getElementById('loadingState').classList.toggle('visible', s === 'loading');
+  document.getElementById('errorState').classList.toggle('visible', s === 'error');
+  document.getElementById('transcriptOutput').classList.toggle('visible', s === 'result');
+}
+
+function setLoadingText(t) {
+  document.getElementById('loadingText').textContent = t;
+}
+
+function switchOutputTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  state.activeOutputTab = tab;
+
+  const summaryBlock = document.getElementById('aiSummaryBlock');
+  const transcriptText = document.getElementById('transcriptText');
+
+  if (tab === 'summary') {
+    summaryBlock.style.display = 'block';
+    transcriptText.style.display = 'none';
+  } else if (tab === 'markdown') {
+    summaryBlock.style.display = 'none';
+    transcriptText.style.display = 'block';
+    transcriptText.textContent = `# Transcript\n\nPlatform: ${state.currentPlatform}\n\n---\n\n${state.currentTranscript}`;
+  } else {
+    summaryBlock.style.display = document.getElementById('optSummary').checked ? 'block' : 'none';
+    transcriptText.style.display = 'block';
+    transcriptText.textContent = state.currentTranscript;
+  }
+}
+
+function setTab(tab) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function loadRecent(idx) {
+  const demos = [
+    'https://youtube.com/watch?v=dQw4w9WgXcQ',
+    'https://tiktok.com/@user/video/123',
+    'https://youtube.com/watch?v=abc123'
+  ];
+  document.getElementById('urlInput').value = demos[idx] || '';
+}
+
+function showModal() { document.getElementById('upgradeModal').classList.add('visible'); }
+function closeModal() { document.getElementById('upgradeModal').classList.remove('visible'); }
+
+// Enter key
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') grabTranscript();
+});
+
+// Init
+setState('empty');
+init();
+</script>
+</body>
+</html>

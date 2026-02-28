@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawGrab — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --black: #0a0a0a;
+  --white: #f0ede8;
+  --orange: #ff4d00;
+  --gray: #141414;
+  --muted: #555;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+}
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,77,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,77,0,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 2;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+.logo span { color: var(--orange); }
+
+.logo-sub {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.card {
+  background: var(--gray);
+  border: 1px solid #1e1e1e;
+  border-top: 2px solid var(--orange);
+  padding: 2rem;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  margin-bottom: 0.25rem;
+}
+
+.card-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 1.75rem;
+  font-weight: 300;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.field-input {
+  width: 100%;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  outline: none;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--white);
+  transition: border-color 0.2s;
+  letter-spacing: 1px;
+}
+.field-input:focus { border-color: var(--orange); }
+.field-input::placeholder { color: #333; }
+
+.submit-btn {
+  width: 100%;
+  padding: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 3px;
+  background: var(--orange);
+  color: var(--black);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 0.5rem;
+}
+.submit-btn:hover { background: var(--white); }
+.submit-btn:disabled { background: #222; color: #444; cursor: not-allowed; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #1e1e1e;
+}
+.divider-text {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.switch-link {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 300;
+}
+.switch-link a {
+  color: var(--orange);
+  text-decoration: none;
+  cursor: pointer;
+}
+.switch-link a:hover { text-decoration: underline; }
+
+.error-box {
+  background: #ff000008;
+  border: 1px solid #ff444433;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #ff6b6b;
+  display: none;
+  letter-spacing: 1px;
+}
+.error-box.visible { display: block; }
+
+.success-box {
+  background: #00ff0008;
+  border: 1px solid #00e67633;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #00e676;
+  display: none;
+  letter-spacing: 1px;
+}
+.success-box.visible { display: block; }
+
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--orange);
+  text-align: center;
+  padding: 0.5rem;
+  display: none;
+  animation: pulse 1s infinite;
+}
+.loading-text.visible { display: block; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* TABS */
+.tabs {
+  display: flex;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid #1e1e1e;
+}
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--white); }
+.tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* SETUP NOTICE */
+.setup-notice {
+  background: #111;
+  border: 1px solid #ff4d0033;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.8rem;
+  color: #aaa;
+  line-height: 1.6;
+  font-weight: 300;
+}
+.setup-notice strong { color: var(--orange); font-weight: 500; }
+.setup-notice code {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--orange);
+  background: #0a0a0a;
+  padding: 0.1rem 0.3rem;
+}
+</style>
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="logo">CLAW<span>GRAB</span></div>
+  <div class="logo-sub">Grab any video. Feed any AI.</div>
+
+  <div class="card">
+
+    <!-- Setup complete -->
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('signin', this)">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('signup', this)">Sign Up</button>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+    <div class="success-box" id="successBox"></div>
+    <div class="loading-text" id="loadingText">▶ AUTHENTICATING...</div>
+
+    <!-- SIGN IN -->
+    <div id="signinForm">
+      <div class="card-title">WELCOME BACK</div>
+      <p class="card-sub">Sign in to your ClawGrab account</p>
+
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" class="field-input" id="signinEmail" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" class="field-input" id="signinPassword" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+
+      <button class="submit-btn" id="signinBtn" onclick="signIn()">SIGN IN</button>
+
+      <div class="divider"><span class="divider-text">or</span></div>
+      <div class="switch-link">No account? <a onclick="switchTab('signup', document.querySelectorAll('.tab-btn')[1])">Sign up free</a></div>
+    </div>
+
+    <!-- SIGN UP -->
+    <div id="signupForm" style="display:none">
+      <div class="card-title">GET STARTED</div>
+      <p class="card-sub">Create your free account — 10 grabs/month</p>
+
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" class="field-input" id="signupEmail" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" class="field-input" id="signupPassword" placeholder="Min 8 characters" autocomplete="new-password"/>
+      </div>
+
+      <button class="submit-btn" id="signupBtn" onclick="signUp()">CREATE ACCOUNT</button>
+
+      <div class="divider"><span class="divider-text">or</span></div>
+      <div class="switch-link">Already have an account? <a onclick="switchTab('signin', document.querySelectorAll('.tab-btn')[0])">Sign in</a></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+// Replace these with your real values from supabase.com
+const SUPABASE_URL = 'https://mmwzlavmmzxkogsqsqga.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_brptFhGiFzZHIBo0FPl4CQ_867NEZTk';
+
+// ── INIT ──────────────────────────────────────────────────────
+const { createClient } = supabase;
+let sb;
+
+try {
+  if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    document.getElementById('setupNotice').style.display = 'none';
+
+    // Redirect if already logged in
+    sb.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        window.location.href = 'clawgrab-app.html';
+      }
+    });
+  }
+} catch(e) {
+  console.log('Supabase not configured yet');
+}
+
+// ── AUTH FUNCTIONS ────────────────────────────────────────────
+async function signIn() {
+  if (!sb) { showError('Configure Supabase first — see setup notice above'); return; }
+
+  const email = document.getElementById('signinEmail').value.trim();
+  const password = document.getElementById('signinPassword').value;
+
+  if (!email || !password) { showError('Email and password required'); return; }
+
+  setLoading(true);
+  hideMessages();
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  setLoading(false);
+
+  if (error) {
+    showError(error.message);
+    return;
+  }
+
+  // Store user info
+  localStorage.setItem('cg_user', JSON.stringify({
+    id: data.user.id,
+    email: data.user.email,
+    plan: data.user.user_metadata?.plan || 'free'
+  }));
+
+  window.location.href = 'clawgrab-app.html';
+}
+
+async function signUp() {
+  if (!sb) { showError('Configure Supabase first — see setup notice above'); return; }
+
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+
+  if (!email || !password) { showError('Email and password required'); return; }
+  if (password.length < 8) { showError('Password must be at least 8 characters'); return; }
+
+  setLoading(true);
+  hideMessages();
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { plan: 'free', grabs_used: 0 }
+    }
+  });
+
+  setLoading(false);
+
+  if (error) {
+    showError(error.message);
+    return;
+  }
+
+  showSuccess('✓ Account created! Check your email to confirm then sign in.');
+  switchTab('signin', document.querySelectorAll('.tab-btn')[0]);
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('signinForm').style.display = tab === 'signin' ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = tab === 'signup' ? 'block' : 'none';
+  hideMessages();
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠ ' + msg;
+  box.classList.add('visible');
+}
+
+function showSuccess(msg) {
+  const box = document.getElementById('successBox');
+  box.textContent = msg;
+  box.classList.add('visible');
+}
+
+function hideMessages() {
+  document.getElementById('errorBox').classList.remove('visible');
+  document.getElementById('successBox').classList.remove('visible');
+}
+
+function setLoading(show) {
+  document.getElementById('loadingText').classList.toggle('visible', show);
+  document.getElementById('signinBtn').disabled = show;
+  document.getElementById('signupBtn').disabled = show;
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const active = document.getElementById('signinForm').style.display !== 'none' ? 'signin' : 'signup';
+    if (active === 'signin') signIn();
+    else signUp();
+  }
+});
+</script>
+</body>
+</html>
