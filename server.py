@@ -16,7 +16,33 @@ def detect_platform(url):
     if re.search(r'twitter\.com|x\.com', url): return 'Twitter/X'
     return 'Video'
 
-def clean_vtt(vtt):
+def transcribe():
+    try:
+        data = request.get_json()
+        if not data or not data.get('url'):
+            return jsonify({'error': 'Missing url'}), 400
+        url = data['url'].strip()
+        print('Received URL:', url)
+        platform = detect_platform(url)
+        print('Platform:', platform)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            print('Starting transcript grab...')
+            text = get_transcript(url, tmpdir)
+            print('Transcript result:', text[:100] if text else 'None')
+            if not text:
+                return jsonify({'error': 'Could not grab transcript'}), 500
+            return jsonify({
+                'platform': platform,
+                'plain': text,
+                'timed': text,
+                'url': url,
+                'word_count': len(text.split())
+            })
+    except Exception as e:
+        print('FATAL ERROR:', str(e))
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
     lines = vtt.splitlines()
     seen = set()
     result = []
